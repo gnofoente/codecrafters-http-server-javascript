@@ -55,22 +55,20 @@ const Response = function (statusCode, headers, body) {
 const server = net.createServer((socket) => {
   socket.on('data', (data) => {
     const { path } = new Request(data);
+    const [none, randomStr] = path.split('/echo/');
+    let res;
 
     if (path == '/') {
-      const res = new Response(200, {}, '');
-      socket.write(res.toString());
-      return;
-    }
-
-    const [none, randomStr] = path.split('/echo/');
-    if (randomStr) {
+      res = new Response(200, {}, '');
+    } else if (randomStr) {
       const headers = {
         'Content-Type': 'text/plain',
         'Content-Length': randomStr.length,
       };
-      const res = new Response(200, headers, randomStr);
+      res = new Response(200, headers, randomStr);
+    } else {
+      res = new Response(404, {}, '');
     }
-    
     socket.write(res.toString());
     socket.end();
   });
