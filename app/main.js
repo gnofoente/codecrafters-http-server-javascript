@@ -78,11 +78,9 @@ const server = net.createServer((socket) => {
     }
 
     socket.write(res.toString());
-    socket.end();
   });
 
   socket.on("close", () => {
-    console.log("* socket closed");
     socket.end();
   });
 });
