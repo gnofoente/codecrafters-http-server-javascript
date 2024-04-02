@@ -56,6 +56,12 @@ const server = net.createServer((socket) => {
   socket.on('data', (data) => {
     const { path } = new Request(data);
 
+    if (path == '/') {
+      const res = new Response(200, {}, '');
+      socket.write(res.toString());
+      return;
+    }
+
     const [none, randomStr] = path.split('/echo/');
     if (randomStr) {
       const headers = {
@@ -63,9 +69,9 @@ const server = net.createServer((socket) => {
         'Content-Length': randomStr.length,
       };
       const res = new Response(200, headers, randomStr);
-      socket.write(res.toString());
     }
-
+    
+    socket.write(res.toString());
     socket.end();
   });
 
