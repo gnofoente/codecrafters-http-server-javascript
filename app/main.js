@@ -1,5 +1,4 @@
 const net = require("net");
-const CRLF = '\r\n\r\n';
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
@@ -25,7 +24,15 @@ const Request = function (data) {
   };
 }
 
-const Response = function (statusCode, headers, body) {
+const Response = function (statusCode, headers = {}, body = '') {
+  if (body.length > 0) {
+    headers['Content-Length'] = body.length;
+  }
+
+  if (body.length > 0 && !headers.hasOwnProperty('Content-Type')) {
+    headers['Content-Type'] = 'text/plain';
+  }
+
   const status = {
     '200': '200 OK',
     '404': '404 NOT FOUND'
@@ -54,21 +61,22 @@ const Response = function (statusCode, headers, body) {
 // Uncomment this to pass the first stage
 const server = net.createServer((socket) => {
   socket.on('data', (data) => {
-    const { path } = new Request(data);
-    const [none, randomStr] = path.split('/echo/');
+    const req = new Request(data);
     let res;
 
-    if (path == '/') {
-      res = new Response(200, {}, '');
-    } else if (randomStr) {
-      const headers = {
-        'Content-Type': 'text/plain',
-        'Content-Length': randomStr.length,
-      };
-      res = new Response(200, headers, randomStr);
+    if (req.path === '/') {
+      res = new Response(200);
+    } else if (req.path.match(/\/echo\/(.*)/)) {
+      const [none, echo] = req.path.split('/echo/');
+      res = new Response(200, {}, echo);
+    } else if (req.path === '/user-agent') {
+      const userAgent = req.headers['User-Agent'];
+      res = new Response(200, {}, userAgent);
     } else {
-      res = new Response(404, {}, '');
+      console.log('404');
+      res = new Response(404);
     }
+
     socket.write(res.toString());
     socket.end();
   });
