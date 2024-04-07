@@ -1,4 +1,6 @@
 const net = require("net");
+const process = require("node:process");
+const { readFile } = require("node:fs/promises");
 
 // You can use print statements as follows for debugging, they'll be visible when running tests.
 console.log("Logs from your program will appear here!");
@@ -16,12 +18,12 @@ const Request = function (data) {
     headers[key] = value.trim();
   });
 
-  return {
-    verb,
-    path,
-    version,
-    headers
-  };
+  this.verb = verb;
+  this.path = path;
+  this.version = version;
+  this.headers = headers;
+
+  return this;
 }
 
 const Response = function (statusCode, headers = {}, body = '') {
@@ -60,7 +62,7 @@ const Response = function (statusCode, headers = {}, body = '') {
 
 // Uncomment this to pass the first stage
 const server = net.createServer((socket) => {
-  socket.on('data', (data) => {
+  socket.on('data', async (data) => {
     const req = new Request(data);
     let res;
 
@@ -72,12 +74,24 @@ const server = net.createServer((socket) => {
     } else if (req.path === '/user-agent') {
       const userAgent = req.headers['User-Agent'];
       res = new Response(200, {}, userAgent);
+    } else if (req.path.match(/\/files\/(.*)/)) {
+      console.log('files');
+      const [none, fileName] = req.path.split('/files/');
+      const indexOfDirectory = process.argv.indexOf('--directory');
+      const dir = process.argv[indexOfDirectory + 1];
+      try {
+        const contents = await readFile(dir + fileName, { encoding: 'utf-8' });
+        console.log(contents);
+        res = new Response(200, { 'Content-Type': 'application/octet-stream' }, contents);
+      } catch {
+        res = new Response(404);
+      }
     } else {
-      console.log('404');
       res = new Response(404);
     }
 
     socket.write(res.toString());
+    socket.end();
   });
 
   socket.on("close", () => {
